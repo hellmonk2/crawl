@@ -1268,7 +1268,10 @@ static int& _zot_clock_for(branch_type br)
     // When entering a new branch, start with an empty clock.
     // (You'll get the usual time when you finish entering.)
     if (!branch_clock.exists(branch_name))
-        branch_clock[branch_name].get_int() = MAX_ZOT_CLOCK - 1;
+    {
+        branch_clock[branch_name].get_int() =
+                                    MAX_ZOT_CLOCK - BEZOTTING_THRESHOLD - 1;
+    }
     return branch_clock[branch_name].get_int();
 }
 
