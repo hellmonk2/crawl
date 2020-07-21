@@ -1267,7 +1267,8 @@ static int& _zot_clock_for(branch_type br)
     return you.props[CLOCK_KEY_ROOT + branch_name].get_int();
 }
 
-static int& _zot_clock() {
+static int& _zot_clock()
+{
     return _zot_clock_for(you.where_are_you);
 }
 
@@ -1277,7 +1278,8 @@ static bool _zot_clock_active_in(branch_type br)
 }
 
 // Is the zot clock running, or is it paused or stopped altogether?
-bool zot_clock_active() {
+bool zot_clock_active()
+{
     return _zot_clock_active_in(you.where_are_you);
 }
 
@@ -1293,7 +1295,8 @@ bool bezotted_in(branch_type br)
 }
 
 // Is the player suffering penalties from nearing the end of the zot clock?
-bool bezotted() {
+bool bezotted()
+{
     return bezotted_in(you.where_are_you);
 }
 
@@ -1308,8 +1311,10 @@ int bezotting_level() {
 }
 
 // Decrease the zot clock when the player enters a new level.
-void decr_zot_clock() {
-    if (!zot_clock_active()) {
+void decr_zot_clock()
+{
+    if (!zot_clock_active())
+    {
         return;
     }
     if (bezotted()) {
@@ -1321,9 +1326,11 @@ void decr_zot_clock() {
 
 // Odds of the zot clock incrementing every aut, expressed as odds
 // out of 1000 (aka 10x a percent chance).
-static unsigned _zot_clock_odds() {
+static unsigned _zot_clock_odds()
+{
     const int base_odds = 100; // 10% per aut, aka on average 1/turn
-    if (have_passive(passive_t::slow_zot)) {
+    if (have_passive(passive_t::slow_zot))
+    {
         // down to 6.7% at full piety, aka once every 1.5 turns. (only movement
         // (is slowed, not all actions, so we shouldn't give double clock!)
         return base_odds - div_rand_round(you.piety, 6);
@@ -1331,11 +1338,13 @@ static unsigned _zot_clock_odds() {
     return base_odds;
 }
 
-void incr_zot_clock() {
+void incr_zot_clock()
+{
     const int clock_incr = binomial(you.time_taken, _zot_clock_odds(), 1000);
     const int old_lvl = bezotting_level();
     _zot_clock() += clock_incr;
-    if (!bezotted()) return;
+    if (!bezotted())
+        return;
 
     if (_zot_clock() >= MAX_ZOT_CLOCK)
     {
@@ -1344,19 +1353,18 @@ void incr_zot_clock() {
         return;
     }
 
-    if (!old_lvl) {
+    if (!old_lvl)
+    {
         mpr("You have lingered too long in familiar places. Zot approaches. Travel to new levels before it's too late!");
         drain_player(150, true, true);
-    } else if (bezotting_level() > old_lvl) {
+    } else if (bezotting_level() > old_lvl)
+    {
         mpr("Zot draws near...");
         drain_player(75, true, true);
     }
 }
 
-void set_initial_zot_clock(bool start_deep) {
-    // Give Delver a pile of extra time to compensate for 'wasted' levels
-    if (start_deep)
-        _zot_clock() = -ZOT_CLOCK_PER_FLOOR;
-    else // don't let players burn through infinity time on the first floor
-        _zot_clock() = MAX_ZOT_CLOCK - ZOT_CLOCK_PER_FLOOR;
+void set_initial_zot_clock()
+{
+    _zot_clock() = MAX_ZOT_CLOCK - ZOT_CLOCK_PER_FLOOR;
 }

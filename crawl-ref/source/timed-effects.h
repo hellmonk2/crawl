@@ -38,4 +38,4 @@ bool bezotted_in(branch_type br);
 int bezotting_level();
 void decr_zot_clock();
 void incr_zot_clock();
-void set_initial_zot_clock(bool start_deep);
+void set_initial_zot_clock();
