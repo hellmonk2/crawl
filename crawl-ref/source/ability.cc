@@ -1276,13 +1276,22 @@ bool activate_ability()
     return activate_talent(talents[selected]);
 }
 
+static bool _can_movement_ability(bool quiet)
+{
+    if (!you.attribute[ATTR_HELD])
+        return true;
+    if (!quiet)
+        mprf("You cannot do that while %s.", held_status());
+    return false;
+}
+
 static bool _can_hop(bool quiet)
 {
     if (!you.duration[DUR_NO_HOP])
         return true;
     if (!quiet)
         mpr("Your legs are too worn out to hop.");
-    return false;
+    return _can_movement_ability(quiet);
 }
 
 // Check prerequisites for a number of abilities.
@@ -1562,6 +1571,9 @@ static bool _check_ability_possible(const ability_def& abil, bool quiet = false)
 
     case ABIL_HOP:
         return _can_hop(quiet);
+
+    case ABIL_ROLLING_CHARGE:
+        return _can_movement_ability(quiet);
 
     case ABIL_BLINK:
     case ABIL_EVOKE_BLINK:
@@ -1940,7 +1952,10 @@ static spret _do_ability(const ability_def& abil, bool fail)
             return spret::abort;
 
     case ABIL_ROLLING_CHARGE:
-        return palentonga_charge(fail);
+        if (_can_movement_ability(false))
+            return palentonga_charge(fail);
+        else
+            return spret::abort;
 
     case ABIL_SPIT_POISON:      // Naga poison spit
     {
@@ -2939,6 +2954,7 @@ static spret _do_ability(const ability_def& abil, bool fail)
         you.duration[DUR_SCRYING] = 100 + random2avg(you.piety * 2, 2);
         you.xray_vision = true;
         viewwindow(true);
+        update_screen();
         break;
 
     case ABIL_ASHENZARI_TRANSFER_KNOWLEDGE:
@@ -3375,7 +3391,10 @@ int choose_ability_menu(const vector<talent>& talents)
     };
     abil_menu.show(false);
     if (!crawl_state.doing_prev_cmd_again)
+    {
         redraw_screen();
+        update_screen();
+    }
     return ret;
 }
 

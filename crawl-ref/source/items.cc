@@ -995,6 +995,7 @@ void pickup_menu(int item_link)
     if (selected.empty())
         canned_msg(MSG_OK);
     redraw_screen();
+    update_screen();
 
     string pickup_warning;
     for (const SelItem &sel : selected)
@@ -3146,12 +3147,6 @@ static void _do_autopickup()
 
     will_autopickup = false;
 
-    if (!can_autopickup())
-    {
-        item_check();
-        return;
-    }
-
     // Store last_pickup in case we need to restore it.
     // Then clear it to fill with items picked up.
     map<int,int> tmp_l_p = you.last_pickup;
@@ -3211,10 +3206,14 @@ static void _do_autopickup()
     explore_pickup_event(n_did_pickup, n_tried_pickup);
 }
 
-void autopickup()
+void autopickup(bool forced)
 {
     _autoinscribe_floor_items();
-    _do_autopickup();
+    // pick up things when forced (by input ;;), or when you feel save
+    if (forced || can_autopickup())
+        _do_autopickup();
+    else
+        item_check();
 }
 
 int inv_count()

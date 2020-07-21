@@ -94,6 +94,7 @@ void wizard_suppress()
     you.wizard = false;
     you.suppress_wizard = true;
     redraw_screen();
+    update_screen();
 }
 
 void wizard_change_job_to(job_type job)
@@ -798,7 +799,7 @@ void wizard_set_xl(bool change_skills)
 
 void set_xl(const int newxl, const bool train, const bool silent)
 {
-    no_messages mx(silent);
+    msg::suppress mx(silent);
 
     if (newxl < you.experience_level)
         debug_downtick_xl(newxl);
@@ -829,6 +830,7 @@ void wizard_toggle_xray_vision()
     you.xray_vision = !you.xray_vision;
     mprf("X-ray vision %s.", you.xray_vision ? "enabled" : "disabled");
     viewwindow(true);
+    update_screen();
 }
 
 void wizard_freeze_time()

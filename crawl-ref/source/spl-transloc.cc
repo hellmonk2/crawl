@@ -366,7 +366,8 @@ spret frog_hop(bool fail)
     return spret::success; // TODO
 }
 
-static bool _check_charge_through(coord_def pos) {
+static bool _check_charge_through(coord_def pos)
+{
     if (!you.can_pass_through_feat(grd(pos)))
     {
         clear_messages();
@@ -374,15 +375,14 @@ static bool _check_charge_through(coord_def pos) {
         return false;
     }
 
-    if (!check_moveto_terrain(pos, "roll") || !check_moveto_trap(pos, "roll"))
-        return false;
-
     return true;
 }
 
 static bool _find_charge_target(vector<coord_def> &target_path, int max_range,
-                                targeter *hitfunc) {
-    while (true) {
+                                targeter *hitfunc)
+{
+    while (true)
+    {
         // query for location {dlb}:
         direction_chooser_args args;
         args.restricts = DIR_TARGET;
@@ -497,6 +497,12 @@ static bool _find_charge_target(vector<coord_def> &target_path, int max_range,
     }
 }
 
+static void _charge_cloud_trail(const coord_def pos)
+{
+    if (!apply_cloud_trail(pos))
+        place_cloud(CLOUD_DUST, pos, 2 + random2(3), &you);
+}
+
 /**
  * Attempt to charge the player to a target of their choosing.
  *
@@ -536,30 +542,30 @@ spret palentonga_charge(bool fail)
     crawl_state.cancel_cmd_repeat();
 
     const coord_def orig_pos = you.pos();
-    for (coord_def pos : target_path) {
+    for (coord_def pos : target_path)
+    {
         monster* sneaky_mons = monster_at(pos);
-        if (sneaky_mons && !fedhas_passthrough(sneaky_mons)) {
+        if (sneaky_mons && !fedhas_passthrough(sneaky_mons))
+        {
             target_mons = sneaky_mons;
             break;
         }
-
-        you.set_position(pos);
-        trap_def* ptrap = trap_at(pos);
-        if (ptrap)
-            ptrap->trigger(you);
-        if (you.pos() != pos) // trap really went off!
-            return spret::success; // let's just stop this here.
-
-        you.set_position(orig_pos);
-        place_cloud(CLOUD_DUST, pos, 2 + random2(3), &you);
     }
     const coord_def dest_pos = target_path.at(target_path.size() - 2);
 
+    remove_water_hold();
     move_player_to_grid(dest_pos, true);
     noisy(12, you.pos());
-    remove_ice_armour_movement();
     apply_barbs_damage();
-    if (you.pos() != dest_pos) // tornado nonsense
+    remove_ice_armour_movement();
+    apply_noxious_bog(orig_pos);
+    _charge_cloud_trail(orig_pos);
+    for (auto it = target_path.begin(); it != target_path.end() - 2; ++it)
+    {
+        apply_noxious_bog(*it);
+        _charge_cloud_trail(*it);
+    }
+    if (you.pos() != dest_pos) // tornado and trap nonsense
         return spret::success; // of a sort
 
     // Maybe we hit a trap and something weird happened.
@@ -568,6 +574,10 @@ spret palentonga_charge(bool fail)
 
     // manually apply noise
     behaviour_event(target_mons, ME_ALERT, &you, you.pos()); // shout + set you as foe
+
+    // We got webbed/netted at the destination, bail on the attack.
+    if (you.attribute[ATTR_HELD])
+        return spret::success;
 
     const int base_delay = you.time_taken;
 
@@ -744,6 +754,7 @@ static void _handle_teleport_update(bool large_change, const coord_def old_pos)
     if (large_change)
     {
         viewwindow();
+        update_screen();
         for (monster_iterator mi; mi; ++mi)
         {
             const bool see_cell = you.see_cell(mi->pos());
@@ -796,6 +807,7 @@ static bool _teleport_player(bool wizard_tele, bool teleportitis,
     // in case something happened in the exact turn that we teleported
     // (like picking up/dropping an item).
     viewwindow();
+    update_screen();
     StashTrack.update_stash(you.pos());
 
     if (player_in_branch(BRANCH_ABYSS) && !wizard_tele)
@@ -824,6 +836,7 @@ static bool _teleport_player(bool wizard_tele, bool teleportitis,
             bool chose = show_map(lpos, false, false);
             pos = lpos.pos;
             redraw_screen();
+            update_screen();
 
             // If we've received a HUP signal then the user can't choose a
             // location, so cancel the teleport.

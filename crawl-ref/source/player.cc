@@ -66,6 +66,7 @@
 #include "species.h" // random_starting_species
 #include "spl-damage.h"
 #include "spl-selfench.h"
+#include "spl-summoning.h"
 #include "spl-transloc.h"
 #include "spl-util.h"
 #include "sprint.h"
@@ -547,6 +548,7 @@ void move_player_to_grid(const coord_def& p, bool stepped)
     // Move the player to new location.
     you.moveto(p, true);
     viewwindow();
+    update_screen();
 
     moveto_location_effects(old_grid, stepped, old_pos);
 }
@@ -2672,6 +2674,7 @@ void level_change(bool skip_attribute_increase)
         {
             // Don't want to see the dead creature at the prompt.
             redraw_screen();
+            update_screen();
 
             if (new_exp == 27)
                 mprf(MSGCH_INTRINSIC_GAIN, "You have reached level 27, the final one!");
@@ -2703,6 +2706,7 @@ void level_change(bool skip_attribute_increase)
             // In case of intrinsic ability changes.
             tiles.layout_statcol();
             redraw_screen();
+            update_screen();
 #endif
             if (!skip_attribute_increase)
                 species_stat_gain(you.species);
@@ -2798,6 +2802,7 @@ void level_change(bool skip_attribute_increase)
                     updated_maxhp = true;
 
                     redraw_screen();
+                    update_screen();
                 }
                 break;
 
@@ -4127,7 +4132,7 @@ void handle_player_poison(int delay)
     // If Cheibriados has slowed your life processes, poison affects you less
     // quickly (you take the same total damage, but spread out over a longer
     // period of time).
-    const double delay_scaling = have_passive(passive_t::slow_metabolism)
+    const double delay_scaling = have_passive(passive_t::slow_poison)
                                ? 2.0 / 3.0 : 1.0;
 
     const double new_aut = cur_aut - ((double) delay) * delay_scaling;
@@ -4224,7 +4229,7 @@ int poison_survival()
     if (!get_player_poisoning())
         return you.hp;
     const int rr = player_regen();
-    const bool chei = have_passive(passive_t::slow_metabolism);
+    const bool chei = have_passive(passive_t::slow_poison);
     const bool dd = (you.species == SP_DEEP_DWARF);
     const int amount = you.duration[DUR_POISONING];
     const double full_aut = _poison_dur_to_aut(amount);
@@ -7330,6 +7335,7 @@ bool player::do_shaft_ability()
     {
         canned_msg(MSG_NOTHING_HAPPENS);
         redraw_screen();
+        update_screen();
         return false;
     }
 }
@@ -7877,6 +7883,7 @@ void player_open_door(coord_def doorpos)
 
     update_exclusion_los(excludes);
     viewwindow();
+    update_screen();
     you.turn_is_over = true;
 }
 
@@ -8198,6 +8205,16 @@ void refresh_weapon_protection()
 
     you.increase_duration(DUR_SPWPN_PROTECTION, 3 + random2(2), 5);
     you.redraw_armour_class = true;
+}
+
+/**
+ * Refreshes a player's spectral weaapon on hit.
+ */
+void handle_spectral_brand()
+{
+    const int pow = you.skill(SK_EVOCATIONS, 4);
+    if (you.skill(SK_EVOCATIONS) > 0 && !find_spectral_weapon(&you))
+        cast_spectral_weapon(&you, pow, you.religion);
 }
 
 // Is the player immune to a particular hex because of their

@@ -356,6 +356,7 @@ static void _draw_level_map(int start_x, int start_y, bool travel_mode,
         }
 
     puttext(1, top, vbuf);
+    update_screen();
 }
 #endif // USE_TILE_LOCAL
 
@@ -796,6 +797,7 @@ bool show_map(level_pos &lpos, bool travel_mode, bool allow_offlevel)
                     viewwindow();
                     display_message_window();
                 }
+                update_screen();
                 continue;
             }
 
@@ -816,6 +818,7 @@ bool show_map(level_pos &lpos, bool travel_mode, bool allow_offlevel)
 #endif
 
     redraw_screen();
+    update_screen();
 
 #ifdef USE_TILE_LOCAL
     tiles.set_map_display(false);
@@ -1151,6 +1154,7 @@ map_control_state process_map_command(command_type cmd, const map_control_state&
     case CMD_MAP_ANNOTATE_LEVEL:
         state.excursion->go_to(state.original);
         redraw_screen();
+        update_screen();
         state.excursion->go_to(state.lpos.id);
 
         if (!is_map_persistent())

@@ -33,11 +33,12 @@
 #include "artefact.h"
 #include "art-enum.h"
 #include "branch.h"
+#include "chardump.h"
+#include "colour.h"
+#include "coordit.h"
 #if TAG_MAJOR_VERSION == 34
  #include "decks.h"
 #endif
-#include "colour.h"
-#include "coordit.h"
 #include "dbg-scan.h"
 #include "dbg-util.h"
 #include "describe.h"
@@ -2383,7 +2384,10 @@ static void _fixup_library_spells(FixedBitVector<NUM_SPELLS>& lib)
             lib.set(i, false);
         else if (newspell != (spell_type) i)
         {
-            lib.set(newspell, lib[i]);
+            // Only give the fixup if they had the spell, don't remove
+            // replacements
+            if (lib[i])
+                lib.set(newspell, lib[i]);
             lib.set(i, false);
         }
     }
@@ -3799,6 +3803,12 @@ static void _tag_read_you(reader &th)
     you.props.clear();
     you.props.read(th);
 #if TAG_MAJOR_VERSION == 34
+    if (!you.props.exists(TIME_PER_LEVEL_KEY) && you.elapsed_time > 0)
+    {
+        CrawlHashTable &time_tracking = you.props[TIME_PER_LEVEL_KEY].get_table();
+        time_tracking["upgrade"] = -1;
+    }
+
     if (th.getMinorVersion() < TAG_MINOR_STICKY_FLAME)
     {
         if (you.props.exists("napalmer"))
@@ -7295,8 +7305,8 @@ static ghost_demon _unmarshallGhost(reader &th)
     {
         if (th.getMinorVersion() < TAG_MINOR_GHOST_MAGIC)
             slot.spell = _fixup_positional_monster_spell(slot.spell);
-
-        ghost.spells.push_back(slot);
+        if (!spell_removed(slot.spell))
+            ghost.spells.push_back(slot);
     }
 #endif
 

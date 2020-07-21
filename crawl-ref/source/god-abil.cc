@@ -2257,6 +2257,7 @@ bool ashenzari_transfer_knowledge()
         if (is_invalid_skill(you.transfer_from_skill))
         {
             redraw_screen();
+            update_screen();
             return false;
         }
 
@@ -2284,6 +2285,7 @@ bool ashenzari_transfer_knowledge()
     you.transfer_total_skill_points = you.transfer_skill_points;
 
     redraw_screen();
+    update_screen();
     return true;
 }
 
@@ -2519,24 +2521,25 @@ static potion_type _gozag_potion_list[][4] =
 {
     { POT_HEAL_WOUNDS, NUM_POTIONS, NUM_POTIONS, NUM_POTIONS },
     { POT_HEAL_WOUNDS, POT_CURING, NUM_POTIONS, NUM_POTIONS },
-    { POT_HEAL_WOUNDS, POT_MAGIC, NUM_POTIONS, NUM_POTIONS, },
+    { POT_HEAL_WOUNDS, POT_MAGIC, NUM_POTIONS, NUM_POTIONS },
     { POT_CURING, POT_MAGIC, NUM_POTIONS, NUM_POTIONS },
     { POT_HEAL_WOUNDS, POT_BERSERK_RAGE, NUM_POTIONS, NUM_POTIONS },
+    { POT_HASTE, NUM_POTIONS, NUM_POTIONS, NUM_POTIONS },
     { POT_HASTE, POT_HEAL_WOUNDS, NUM_POTIONS, NUM_POTIONS },
     { POT_HASTE, POT_BRILLIANCE, NUM_POTIONS, NUM_POTIONS },
-    { POT_HASTE, POT_FLIGHT, NUM_POTIONS, NUM_POTIONS },
     { POT_HASTE, POT_RESISTANCE, NUM_POTIONS, NUM_POTIONS },
     { POT_MIGHT, POT_STABBING, NUM_POTIONS, NUM_POTIONS },
-    { POT_RESISTANCE, POT_FLIGHT, NUM_POTIONS, NUM_POTIONS },
+    { POT_BRILLIANCE, POT_MAGIC, NUM_POTIONS, NUM_POTIONS },
     { POT_INVISIBILITY, POT_STABBING, NUM_POTIONS , NUM_POTIONS },
     { POT_INVISIBILITY, POT_STABBING, POT_MIGHT, NUM_POTIONS },
     { POT_HEAL_WOUNDS, POT_CURING, POT_MAGIC, NUM_POTIONS },
     { POT_HEAL_WOUNDS, POT_CURING, POT_BERSERK_RAGE, NUM_POTIONS },
     { POT_MIGHT, POT_BRILLIANCE, NUM_POTIONS, NUM_POTIONS },
-    { POT_FLIGHT, POT_STABBING, POT_INVISIBILITY, NUM_POTIONS },
+    { POT_RESISTANCE, NUM_POTIONS, NUM_POTIONS, NUM_POTIONS },
     { POT_RESISTANCE, POT_MIGHT, POT_STABBING, NUM_POTIONS },
     { POT_RESISTANCE, POT_MIGHT, POT_HASTE, NUM_POTIONS },
     { POT_RESISTANCE, POT_INVISIBILITY, POT_STABBING, NUM_POTIONS },
+    { POT_LIGNIFY, POT_MIGHT, POT_RESISTANCE, NUM_POTIONS },
 };
 
 static void _gozag_add_potions(CrawlVector &vec, potion_type *which)
@@ -3570,7 +3573,6 @@ static const vector<mutation_type> _major_arcane_sacrifices =
 /// School-disabling mutations that are unfortunate for most characters.
 static const vector<mutation_type> _moderate_arcane_sacrifices =
 {
-    MUT_NO_CHARM_MAGIC,
     MUT_NO_TRANSMUTATION_MAGIC,
     MUT_NO_HEXES_MAGIC,
 };
@@ -4315,6 +4317,7 @@ static void _extra_sacrifice_code(ability_type sac)
         }
 
         redraw_screen();
+        update_screen();
     }
 }
 
@@ -4519,6 +4522,7 @@ bool ru_do_sacrifice(ability_type sac)
     _ru_expire_sacrifices();
     ru_reset_sacrifice_timer(true);
     redraw_screen(); // pretty much everything could have changed
+    update_screen();
     return true;
 }
 

@@ -160,7 +160,14 @@ LUAWRAP(crawl_clear_messages,
 clear_messages(lua_isboolean(ls, 1) ? lua_toboolean(ls, 1) : false))
 /*** Redraw the screen.
  * @function redraw_screen */
-LUAWRAP(crawl_redraw_screen, redraw_screen())
+LUAFN(crawl_redraw_screen)
+{
+    UNUSED(ls);
+
+    redraw_screen();
+    update_screen();
+    return 0;
+}
 
 /*** Toggle autoclearing of `--- more ---` prompts.
  * @tparam boolean flag
@@ -1519,7 +1526,14 @@ LUAFN(_crawl_milestone)
  * @within dlua
  * @function redraw_view
  */
-LUAWRAP(_crawl_redraw_view, viewwindow())
+LUAFN(_crawl_redraw_view)
+{
+    UNUSED(ls);
+
+    viewwindow();
+    update_screen();
+    return 0;
+}
 
 /*** Redraw the player stats.
  * You probably want @{redraw_screen} unless you specifically want only the
@@ -1543,6 +1557,7 @@ LUAFN(_crawl_redraw_stats)
     you.redraw_status_lights = true;
 
     print_stats();
+    update_screen();
     return 0;
 }
 

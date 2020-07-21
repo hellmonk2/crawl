@@ -12,6 +12,7 @@ int get_number_of_cols();
 int num_to_lines(int num);
 
 void clrscr();
+void clrscr_sys();
 void clear_to_end_of_line();
 void gotoxy_sys(int x, int y);
 void textcolour(int c);
@@ -52,8 +53,10 @@ struct save_cursor_pos
     save_cursor_pos()
         : region(get_cursor_region()), pos(cgetpos(region))
     {
+#ifndef TARGET_OS_WINDOWS
         ASSERTM(valid_cursor_pos(pos.x, pos.y, region),
             "invalid cursor position %d,%d in region %d", pos.x, pos.y, region);
+#endif
     };
     ~save_cursor_pos()
     {

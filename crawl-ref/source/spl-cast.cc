@@ -266,7 +266,10 @@ int list_spells(bool toggle_with_I, bool viewing, bool allow_preselect,
 
     spell_menu.show();
     if (!crawl_state.doing_prev_cmd_again)
+    {
         redraw_screen();
+        update_screen();
+    }
     return choice;
 }
 
@@ -338,11 +341,11 @@ int raw_spell_fail(spell_type spell)
     chance += difficulty_by_level[spell_level]; // between 0 and 330
 
     // since chance is passed through a 3rd degree polynomial, cap the
-    // value to avoid any overflow issues. The value that causes an
-    // overflow seems to be slightly higher than 1400, so the cap will
-    // be set there. This value is only reachable through gameplay by
-    // extreme scenarios, e.g. a 1 str character wearing CPA.
-    chance = min(chance, 1400);
+    // value to avoid any overflow issues. We choose 210 by solving for chance2
+    // = 200 in the polynomial -- it gets capped at 100 ultimately, but we
+    // need a bunch of headroom in case some later calculations lower the value
+    // below 100 after this.
+    chance = min(chance, 210);
 
     // This polynomial is a smoother approximation of a breakpoint-based
     // calculation that originates pre-DCSS, mapping `chance` at this point to
@@ -698,7 +701,10 @@ bool cast_a_spell(bool check_range, spell_type spell)
                 keyin = ESCAPE;
 
             if (!crawl_state.doing_prev_cmd_again)
+            {
                 redraw_screen();
+                update_screen();
+            }
 
             if (isaalpha(keyin) || key_is_escape(keyin))
                 break;
@@ -758,7 +764,10 @@ bool cast_a_spell(bool check_range, spell_type spell)
                     keyin = ESCAPE;
 
                 if (!crawl_state.doing_prev_cmd_again)
+                {
                     redraw_screen();
+                    update_screen();
+                }
 
                 if (isaalpha(keyin) || key_is_escape(keyin))
                     break;
@@ -858,6 +867,7 @@ bool cast_a_spell(bool check_range, spell_type spell)
         // Return the MP since the spell is aborted.
         inc_mp(cost, true);
         redraw_screen();
+        update_screen();
         return false;
     }
 
@@ -2281,6 +2291,7 @@ const set<spell_type> removed_spells =
     SPELL_HOMUNCULUS,
     SPELL_HUNTING_CRY,
     SPELL_IGNITE_POISON_SINGLE,
+    SPELL_INFUSION,
     SPELL_INSULATION,
     SPELL_IRON_ELEMENTALS,
     SPELL_LETHAL_INFUSION,
@@ -2295,13 +2306,17 @@ const set<spell_type> removed_spells =
     SPELL_REGENERATION,
     SPELL_RESURRECT,
     SPELL_SACRIFICE,
+    SPELL_SCATTERSHOT,
     SPELL_SEE_INVISIBLE,
     SPELL_SERPENT_OF_HELL_BREATH_REMOVED,
     SPELL_SHAFT_SELF,
+    SPELL_SHROUD_OF_GOLUBRIA,
     SPELL_SILVER_BLAST,
     SPELL_SINGULARITY,
     SPELL_SONG_OF_SHIELDING,
+    SPELL_SPECTRAL_WEAPON,
     SPELL_STEAM_CLOUD,
+    SPELL_STICKS_TO_SNAKES,
     SPELL_STONESKIN,
     SPELL_STRIKING,
     SPELL_SUMMON_BUTTERFLIES,

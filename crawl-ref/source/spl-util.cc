@@ -33,6 +33,7 @@
 #include "religion.h"
 #include "spl-book.h"
 #include "spl-damage.h"
+#include "spl-other.h"
 #include "spl-summoning.h"
 #include "spl-zap.h"
 #include "stringutil.h"
@@ -337,6 +338,7 @@ bool add_spell_to_memory(spell_type spell)
 #ifdef USE_TILE_LOCAL
     tiles.layout_statcol();
     redraw_screen();
+    update_screen();
 #endif
 
     return true;
@@ -364,6 +366,7 @@ bool del_spell_from_memory_by_slot(int slot)
 #ifdef USE_TILE_LOCAL
     tiles.layout_statcol();
     redraw_screen();
+    update_screen();
 #endif
 
     return true;
@@ -1333,7 +1336,6 @@ bool spell_no_hostile_in_range(spell_type spell)
     case SPELL_CHAIN_LIGHTNING:
     case SPELL_OZOCUBUS_REFRIGERATION:
     case SPELL_OLGREBS_TOXIC_RADIANCE:
-    case SPELL_INTOXICATE:
     case SPELL_IGNITION:
     case SPELL_FROZEN_RAMPARTS:
         return minRange > you.current_vision;
@@ -1382,6 +1384,9 @@ bool spell_no_hostile_in_range(spell_type spell)
 
      case SPELL_ABSOLUTE_ZERO:
          return cast_absolute_zero(pow, false, true) == spret::abort;
+
+     case SPELL_INTOXICATE:
+         return cast_intoxicate(-1, false, true) == spret::abort;
 
     default:
         break;

@@ -1213,6 +1213,7 @@ static bool _explode_monster(monster* mons, killer_type killer,
     {
         saw = true;
         viewwindow();
+        update_screen();
         if (is_sanctuary(mons->pos()))
             mprf(MSGCH_GOD, "%s", sanct_msg);
         else if (type == MONS_BENNU)
@@ -1251,7 +1252,10 @@ static bool _explode_monster(monster* mons, killer_type killer,
     // Exploding kills the monster a bit earlier than normal.
     mons->hit_points = -16;
     if (saw)
+    {
         viewwindow();
+        update_screen();
+    }
 
     // FIXME: show_more == you.see_cell(mons->pos())
     if (type == MONS_LURKING_HORROR)
@@ -1491,7 +1495,7 @@ static bool _mons_reaped(actor &killer, monster& victim)
 
     monster *zombie = 0;
     if (animate_remains(victim.pos(), CORPSE_BODY, beh, 0, hitting, &killer, "",
-                        GOD_NO_GOD, true, true, true, &zombie) <= 0)
+                        GOD_NO_GOD, true, true, false, &zombie) <= 0)
     {
         return false;
     }
@@ -1501,7 +1505,7 @@ static bool _mons_reaped(actor &killer, monster& victim)
     else if (you.can_see(*zombie))
         mprf("%s appears out of thin air!", zombie->name(DESC_THE).c_str());
 
-    player_angers_monster(zombie);
+    check_lovelessness(*zombie);
 
     return true;
 }

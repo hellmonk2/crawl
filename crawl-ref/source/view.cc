@@ -951,6 +951,7 @@ bool view_update()
     if (you.num_turns > you.last_view_update)
     {
         viewwindow();
+        update_screen();
         return true;
     }
     return false;
@@ -967,6 +968,7 @@ void flash_view(use_animation_type a, colour_t colour, targeter *where)
         you.flash_colour = colour;
         you.flash_where = where;
         viewwindow(false);
+        update_screen();
     }
 }
 
@@ -1295,16 +1297,21 @@ void run_animation(animation_type anim, use_animation_type type, bool cleanup)
         animation *a = animations[anim];
 
         viewwindow();
+        update_screen();
 
         for (int i = 0; i < a->frames; ++i)
         {
             a->init_frame(i);
             viewwindow(false, false, a);
+            update_screen();
             delay(a->frame_delay);
         }
 
         if (cleanup)
+        {
             viewwindow();
+            update_screen();
+        }
     }
 }
 
@@ -1362,6 +1369,7 @@ void viewwindow(bool show_updates, bool tiles_only, animation *a, view_renderer 
         if (crawl_state.smallterm)
         {
             redraw_screen();
+            update_screen();
             return;
         }
 #endif
@@ -1675,6 +1683,7 @@ static void _config_layers_menu()
     while (!exit)
     {
         viewwindow();
+        update_screen();
         mprf(MSGCH_PROMPT, "Select layers to display:\n"
                            "<%s>(m)onsters</%s>|"
                            "<%s>(p)layer</%s>|"
@@ -1783,4 +1792,5 @@ void handle_terminal_resize()
         crawl_view.init_geometry();
 
     redraw_screen();
+    update_screen();
 }

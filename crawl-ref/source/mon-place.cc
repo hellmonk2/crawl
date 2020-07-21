@@ -332,6 +332,7 @@ void spawn_random_monsters()
         mg.xp_tracking = XP_UNTRACKED;
         mons_place(mg);
         viewwindow();
+        update_screen();
         return;
     }
 
@@ -346,6 +347,7 @@ void spawn_random_monsters()
 
     mons_place(mg);
     viewwindow();
+    update_screen();
 }
 
 static bool _is_random_monster(monster_type mt)
@@ -364,7 +366,7 @@ static bool _has_big_aura(monster_type mt)
 static bool _is_incompatible_monster(monster_type mt)
 {
     return mons_class_is_stationary(mt)
-        || player_will_anger_monster(mt);
+        || god_hates_monster(mt);
 }
 
 static bool _is_banded_monster(monster_type mt)
@@ -1247,7 +1249,7 @@ static monster* _place_monster_aux(const mgen_data &mg, const monster *leader,
     // Don't leave shifters in their starting shape.
     if (mg.cls == MONS_SHAPESHIFTER || mg.cls == MONS_GLOWING_SHAPESHIFTER)
     {
-        no_messages nm;
+        msg::suppress nm;
         monster_polymorph(mon, RANDOM_MONSTER);
 
         // It's not actually a known shapeshifter if it happened to be
@@ -2639,7 +2641,7 @@ monster* mons_place(mgen_data mg)
         }
 
         if (!(mg.flags & MG_FORCE_BEH) && !crawl_state.game_is_arena())
-            player_angers_monster(creation);
+            check_lovelessness(*creation);
 
         behaviour_event(creation, ME_EVAL);
     }
@@ -2796,7 +2798,7 @@ bool can_spawn_mushrooms(coord_def where)
     return actor_cloud_immune(dummy, *cloud);
 }
 
-conduct_type player_will_anger_monster(monster_type type)
+conduct_type god_hates_monster(monster_type type)
 {
     monster dummy;
     dummy.type = type;
@@ -2807,7 +2809,26 @@ conduct_type player_will_anger_monster(monster_type type)
     else
         define_monster(dummy);
 
-    return player_will_anger_monster(dummy);
+    return god_hates_monster(dummy);
+}
+
+/**
+ * Is the player hated by all? If so, does this monster care?
+ */
+bool mons_hates_your_lovelessness(monster_type type)
+{
+    return you.get_mutation_level(MUT_NO_LOVE) && !mons_is_conjured(type);
+}
+
+void check_lovelessness(monster &mons)
+{
+    if (!mons_hates_your_lovelessness(mons.type))
+        return;
+
+    mons.attitude = ATT_HOSTILE;
+    mons.del_ench(ENCH_CHARM);
+    behaviour_event(&mons, ME_ALERT, &you);
+    mprf("%s feels only hate for you!", mons.name(DESC_THE).c_str());
 }
 
 /**
@@ -2821,13 +2842,11 @@ conduct_type player_will_anger_monster(monster_type type)
  * @return      The reason the player's religion conflicts with the monster
  *              (e.g. DID_EVIL for evil monsters), or DID_NOTHING.
  */
-conduct_type player_will_anger_monster(const monster &mon)
+conduct_type god_hates_monster(const monster &mon)
 {
-    if (you.get_mutation_level(MUT_NO_LOVE) && !mons_is_conjured(mon.type))
-    {
-        // Player angers all real monsters
+    // Player angers all real monsters
+    if (mons_hates_your_lovelessness(mon.type))
         return DID_SACRIFICE_LOVE;
-    }
 
     if (is_good_god(you.religion) && mon.evil())
         return DID_EVIL;
@@ -2846,68 +2865,6 @@ conduct_type player_will_anger_monster(const monster &mon)
         return DID_SPELL_CASTING;
 
     return DID_NOTHING;
-}
-
-bool player_angers_monster(monster* mon, bool real)
-{
-    ASSERT(mon); // XXX: change to monster &mon
-
-    // Get the drawbacks, not the benefits... (to prevent e.g. demon-scumming).
-    conduct_type why = player_will_anger_monster(*mon);
-    if (why && (!real || mon->wont_attack()))
-    {
-        if (real)
-        {
-            mon->attitude = ATT_HOSTILE;
-            mon->del_ench(ENCH_CHARM);
-            behaviour_event(mon, ME_ALERT, &you);
-        }
-        const string modal = real
-                             ? ((why == DID_SACRIFICE_LOVE) ? "can " : "")
-                             : "would ";
-        const string verb = (why == DID_SACRIFICE_LOVE)
-                             ? "feel"
-                             : real ? "is" : "be";
-        const string vcomplex = modal + verb;
-
-        if (you.can_see(*mon))
-        {
-            const string mname = mon->name(DESC_THE);
-
-            switch (why)
-            {
-            case DID_EVIL:
-                mprf("%s %s enraged by your holy aura!",
-                    mname.c_str(), vcomplex.c_str());
-                break;
-            case DID_HOLY:
-                mprf("%s %s enraged by your evilness!",
-                    mname.c_str(), vcomplex.c_str());
-                break;
-            case DID_UNCLEAN:
-            case DID_CHAOS:
-                mprf("%s %s enraged by your lawfulness!",
-                    mname.c_str(), vcomplex.c_str());
-                break;
-            case DID_SPELL_CASTING:
-                mprf("%s %s enraged by your magic-hating god!",
-                    mname.c_str(), vcomplex.c_str());
-                break;
-            case DID_SACRIFICE_LOVE:
-                mprf("%s %s only hate for you!",
-                    mname.c_str(), vcomplex.c_str());
-                break;
-            default:
-                mprf("%s %s enraged by a buggy thing about you!",
-                    mname.c_str(), vcomplex.c_str());
-                break;
-            }
-        }
-
-        return true;
-    }
-
-    return false;
 }
 
 monster* create_monster(mgen_data mg, bool fail_msg)

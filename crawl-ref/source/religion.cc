@@ -627,6 +627,7 @@ void dec_penance(god_type god, int val)
             {
                 simple_god_message(" restores the support of your attributes.");
                 redraw_screen();
+                update_screen();
                 notify_stat_change();
             }
             if (have_passive(passive_t::storm_shield))
@@ -764,6 +765,7 @@ static void _inc_penance(god_type god, int val)
         if (will_have_passive(passive_t::stat_boost))
         {
             redraw_screen();
+            update_screen();
             notify_stat_change();
         }
 
@@ -1054,6 +1056,7 @@ static void _delayed_gift_callback(const mgen_data &/*mg*/, monster *&mon,
 
     // Make sure monsters are shown.
     viewwindow();
+    update_screen();
     more();
     _inc_gift_timeout(4 + random2avg(7, 2));
     you.num_current_gifts[you.religion]++;
@@ -2381,6 +2384,7 @@ static void _gain_piety_point()
 #ifdef USE_TILE_LOCAL
                 tiles.layout_statcol();
                 redraw_screen();
+                update_screen();
 #endif
                 learned_something_new(HINT_NEW_ABILITY_GOD);
                 // Preserve the old hotkey
@@ -2570,6 +2574,7 @@ void lose_piety(int pgn)
 #ifdef USE_TILE_LOCAL
         tiles.layout_statcol();
         redraw_screen();
+        update_screen();
 #endif
     }
 
@@ -2780,6 +2785,7 @@ void excommunication(bool voluntary, god_type new_god)
     if (had_stat_boost)
     {
         redraw_screen();
+        update_screen();
         notify_stat_change();
     }
 
@@ -2991,6 +2997,7 @@ void excommunication(bool voluntary, god_type new_god)
 #ifdef USE_TILE_LOCAL
     tiles.layout_statcol();
     redraw_screen();
+    update_screen();
 #endif
 
     // Evil hack.
@@ -3452,6 +3459,7 @@ static void _join_gozag()
 #ifdef USE_TILE_LOCAL
         tiles.layout_statcol();
         redraw_screen();
+        update_screen();
 #else
         ;
 #endif
@@ -3527,27 +3535,11 @@ static void _join_trog()
     if (you.species != SP_GNOLL)
         for (int sk = SK_SPELLCASTING; sk <= SK_LAST_MAGIC; ++sk)
             you.train[sk] = you.train_alt[sk] = TRAINING_DISABLED;
-
-    // When you start worshipping Trog, you make all non-hostile magic
-    // users hostile.
-    if (query_daction_counter(DACT_ALLY_SPELLCASTER))
-    {
-        add_daction(DACT_ALLY_SPELLCASTER);
-        mprf(MSGCH_MONSTER_ENCHANT, "Your magic-using allies forsake you.");
-    }
 }
 
 // Setup for joining the orderly ascetics of Zin.
 static void _join_zin()
 {
-    // When you start worshipping Zin, you make all non-hostile unclean and
-    // chaotic beings hostile.
-    if (query_daction_counter(DACT_ALLY_UNCLEAN_CHAOTIC))
-    {
-        add_daction(DACT_ALLY_UNCLEAN_CHAOTIC);
-        mprf(MSGCH_MONSTER_ENCHANT, "Your unclean and chaotic allies forsake you.");
-    }
-
     // Need to pay St. Peters.
     if (you.attribute[ATTR_DONATIONS] * 9 < you.gold)
     {
@@ -3615,6 +3607,7 @@ void join_religion(god_type which_god)
     ASSERT(you.species != SP_DEMIGOD);
 
     redraw_screen();
+    update_screen();
 
     const god_type old_god = you.religion;
     if (you.previous_good_god == GOD_NO_GOD)
@@ -3647,15 +3640,6 @@ void join_religion(god_type which_god)
     set_god_ability_slots();    // remove old god's slots, reserve new god's
 
     _set_initial_god_piety();
-
-    // When you start worshipping a good god, you make all non-hostile
-    // unholy and evil beings hostile.
-    if (is_good_god(you.religion)
-        && query_daction_counter(DACT_ALLY_UNHOLY_EVIL))
-    {
-        add_daction(DACT_ALLY_UNHOLY_EVIL);
-        mprf(MSGCH_MONSTER_ENCHANT, "Your unholy and evil allies forsake you.");
-    }
 
     const function<void ()> *join_effect = map_find(on_join, you.religion);
     if (join_effect != nullptr)
@@ -3692,6 +3676,7 @@ void join_religion(god_type which_god)
 #ifdef USE_TILE_LOCAL
     tiles.layout_statcol();
     redraw_screen();
+    update_screen();
 #endif
 
     learned_something_new(HINT_CONVERT);
@@ -3775,6 +3760,7 @@ void god_pitch(god_type which_god)
     {
         you.turn_is_over = false;
         redraw_screen();
+        update_screen();
     }
 }
 

@@ -256,6 +256,10 @@ int main(int argc, char *argv[])
     real_crawl_state = new game_state();
     real_env = new crawl_environment();
 #endif
+    // do this explicitly so that static initialization order woes can be
+    // ignored.
+    msg::force_stderr echo(MB_MAYBE);
+
     init_crash_handler();
 
     _startup_asserts();
@@ -288,8 +292,22 @@ int main(int argc, char *argv[])
     // make sure all the expected data directories exist
     validate_basedirs();
 
-    // Read the init file.
-    read_init_file();
+    {
+        // Read the init file -- first pass. This pass ignores lua. It'll get
+        // reread with lua on starting a game.
+#ifdef USE_TILE_WEB
+        // on webtiles, prevent echoing a player's rc errors to the webtiles
+        // log. At this point, io is not initialized so for other builds we
+        // do want to echo, in case things go extremely wrong. For dgl builds,
+        // players will see the error in their log anyways. (Regular webtiles
+        // actually gets a popup, but this is rarely used except for dev work)
+
+        // TODO: would be simpler to just never echo? Do other builds really
+        // need this outside of debugging contexts?
+        msg::force_stderr suppress_log_stderr(MB_FALSE);
+#endif
+        read_init_file();
+    }
 
     // Now parse the args again, looking for everything else.
     parse_args(argc, argv, false);
@@ -416,6 +434,7 @@ NORETURN static void _launch_game()
 
 #ifdef USE_TILE
     viewwindow();
+    update_screen();
 #endif
 
     if (game_start)
@@ -895,10 +914,16 @@ struct disable_check
     bool was_disabled;
 };
 
-static void _update_place_info()
+static void _update_place_stats()
 {
     if (you.num_turns == -1)
         return;
+
+    // not strictly stored as part of PlaceInfo, but this is a natural place
+    // to do this update.
+    CrawlHashTable &time_tracking = you.props[TIME_PER_LEVEL_KEY].get_table();
+    int &cur_value = time_tracking[level_id::current().describe()].get_int();
+    cur_value += you.time_taken;
 
     PlaceInfo  delta;
 
@@ -987,6 +1012,7 @@ static void _input()
         revive();
         bring_to_safety();
         redraw_screen();
+        update_screen();
     }
 
     // Unhandled things that should have caused death.
@@ -1184,6 +1210,7 @@ static void _input()
         // This else will be triggered by instantaneous actions, such as
         // Chei's temporal distortion.
         viewwindow();
+        update_screen();
     }
 
     update_can_currently_train();
@@ -1800,9 +1827,11 @@ void process_command(command_type cmd, command_type prev_cmd)
         break;
 
     case CMD_INSPECT_FLOOR:
-        request_autopickup();
         if (player_on_single_stack() && !you.running)
             pickup(true);
+        else
+            // Forced autopickup if CMD_INSPECT_FLOOR is used twice in a row
+            autopickup(prev_cmd == CMD_INSPECT_FLOOR);
         break;
     case CMD_SHOW_TERRAIN: toggle_show_terrain(); break;
     case CMD_ADJUST_INVENTORY: adjust(); break;
@@ -1870,12 +1899,32 @@ void process_command(command_type cmd, command_type prev_cmd)
 
         // Informational commands.
     case CMD_DISPLAY_CHARACTER_STATUS: display_char_status();          break;
-    case CMD_DISPLAY_COMMANDS:         show_help(); redraw_screen(); break;
+    case CMD_DISPLAY_COMMANDS:
+        show_help();
+        redraw_screen();
+        update_screen();
+        break;
     case CMD_DISPLAY_INVENTORY:        display_inventory();            break;
-    case CMD_DISPLAY_KNOWN_OBJECTS: check_item_knowledge(); redraw_screen(); break;
-    case CMD_DISPLAY_MUTATIONS: display_mutations(); redraw_screen();  break;
-    case CMD_DISPLAY_RUNES: display_runes(); redraw_screen();          break;
-    case CMD_DISPLAY_SKILLS:           skill_menu(); redraw_screen();  break;
+    case CMD_DISPLAY_KNOWN_OBJECTS:
+        check_item_knowledge();
+        redraw_screen();
+        update_screen();
+        break;
+    case CMD_DISPLAY_MUTATIONS:
+        display_mutations();
+        redraw_screen();
+        update_screen();
+        break;
+    case CMD_DISPLAY_RUNES:
+        display_runes();
+        redraw_screen();
+        update_screen();
+        break;
+    case CMD_DISPLAY_SKILLS:
+        skill_menu();
+        redraw_screen();
+        update_screen();
+        break;
     case CMD_EXPERIENCE_CHECK:         _experience_check();            break;
     case CMD_FULL_VIEW:                full_describe_view();           break;
     case CMD_INSCRIBE_ITEM:            prompt_inscribe_item();         break;
@@ -1883,7 +1932,11 @@ void process_command(command_type cmd, command_type prev_cmd)
     case CMD_LIST_GOLD:                _do_list_gold();                break;
     case CMD_LIST_JEWELLERY:           list_jewellery();               break;
     case CMD_MAKE_NOTE:                make_user_note();               break;
-    case CMD_REPLAY_MESSAGES: replay_messages(); redraw_screen();      break;
+    case CMD_REPLAY_MESSAGES:
+        replay_messages();
+        redraw_screen();
+        update_screen();
+        break;
     case CMD_RESISTS_SCREEN:           print_overview_screen();        break;
     case CMD_LOOKUP_HELP:           keyhelp_query_descriptions();      break;
 
@@ -1891,6 +1944,7 @@ void process_command(command_type cmd, command_type prev_cmd)
     {
         describe_god(you.religion);
         redraw_screen();
+        update_screen();
         break;
     }
 
@@ -1961,7 +2015,10 @@ void process_command(command_type cmd, command_type prev_cmd)
 #endif
 
         // Game commands.
-    case CMD_REDRAW_SCREEN: redraw_screen(); break;
+    case CMD_REDRAW_SCREEN:
+        redraw_screen();
+        update_screen();
+        break;
 
 #ifdef USE_UNIX_SIGNALS
     case CMD_SUSPEND_GAME:
@@ -1975,6 +2032,7 @@ void process_command(command_type cmd, command_type prev_cmd)
         console_startup();
 #endif
         redraw_screen();
+        update_screen();
         break;
 #endif
 
@@ -2054,8 +2112,10 @@ static void _prep_input()
 
     you.redraw_status_lights = true;
     print_stats();
+    update_screen();
 
     viewwindow();
+    update_screen();
     maybe_update_stashes();
     if (check_for_interesting_features() && you.running.is_explore())
         stop_running();
@@ -2150,6 +2210,7 @@ void world_reacts()
         crawl_state.viewport_monster_hp = false;
         crawl_state.viewport_weapons = false;
         viewwindow();
+        update_screen();
     }
 
     update_monsters_in_view();
@@ -2221,6 +2282,7 @@ void world_reacts()
     add_auto_excludes();
 
     viewwindow();
+    update_screen();
 
     if (you.cannot_act() && any_messages()
         && crawl_state.repeat_cmd != CMD_WIZARD)
@@ -2238,7 +2300,7 @@ void world_reacts()
         if (you.num_turns < INT_MAX)
             you.num_turns++;
 
-        _update_place_info();
+        _update_place_stats();
 
         if (env.turns_on_level < INT_MAX)
             env.turns_on_level++;
@@ -2327,7 +2389,10 @@ static keycode_type _get_next_keycode()
     {
         keyin = unmangle_direction_keys(getch_with_command_macros());
         if (keyin == CK_REDRAW)
+        {
             redraw_screen();
+            update_screen();
+        }
         else
             break;
     }

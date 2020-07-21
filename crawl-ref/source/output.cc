@@ -1151,7 +1151,6 @@ static void _print_status_lights(int y)
 #endif
 }
 
-#ifdef USE_TILE_LOCAL
 static bool _need_stats_printed()
 {
     return you.redraw_title
@@ -1166,7 +1165,6 @@ static bool _need_stats_printed()
            || you.wield_change
            || you.redraw_quiver;
 }
-#endif
 
 static void _draw_wizmode_flag(const char *word)
 {
@@ -1275,7 +1273,7 @@ static void _redraw_title()
     textcolour(LIGHTGREY);
 }
 
-void print_stats()
+bool print_stats()
 {
     int ac_pos = 5;
     int ev_pos = ac_pos + 1;
@@ -1302,9 +1300,7 @@ void print_stats()
         you.redraw_status_lights = true;
     }
 
-#ifdef USE_TILE_LOCAL
     bool has_changed = _need_stats_printed();
-#endif
 
     if (you.redraw_title)
     {
@@ -1404,13 +1400,10 @@ void print_stats()
         _print_status_lights(11 + yhack);
     }
 
-#ifdef USE_TILE_LOCAL
-    if (has_changed)
-        update_screen();
-#else
-    update_screen();
+#ifndef USE_TILE_LOCAL
     assert_valid_cursor_pos();
 #endif
+    return has_changed;
 }
 
 static string _level_description_string_hud()
@@ -1476,49 +1469,6 @@ void draw_border()
     // Line 8 is exp pool, Level
 }
 
-#ifndef USE_TILE_LOCAL
-void redraw_console_sidebar()
-{
-#ifndef USE_TILE_LOCAL
-    if (crawl_state.smallterm)
-    {
-        clrscr();
-        CGOTOXY(1,1, GOTO_CRT);
-        CPRINTF("Your terminal window is too small; please resize to at least %d,%d", MIN_COLS, MIN_LINES);
-        return;
-    }
-#endif
-    // TODO: this is super hacky and merges stuff from redraw_screen and
-    // viewwindow. It won't do nothing for webtiles, but should be basically
-    // benign there.
-    draw_border();
-
-    you.redraw_title        = true;
-    you.redraw_hit_points   = true;
-    you.redraw_magic_points = true;
-    you.redraw_stats.init(true);
-    you.redraw_armour_class  = true;
-    you.redraw_evasion       = true;
-    you.redraw_experience    = true;
-    you.wield_change         = true;
-    you.redraw_quiver        = true;
-    you.redraw_status_lights = true;
-
-    print_stats();
-
-    {
-        no_notes nx;
-        print_stats_level();
-        update_turn_count();
-    }
-    update_monster_pane();
-
-    you.flash_colour = BLACK;
-    you.flash_where = 0;
-    assert_valid_cursor_pos();
-}
-#endif
-
 void redraw_screen(bool show_updates)
 {
     if (!crawl_state.need_save)
@@ -1578,7 +1528,6 @@ void redraw_screen(bool show_updates)
         display_message_window();
     }
 
-    update_screen();
 #ifndef USE_TILE_LOCAL
     assert_valid_cursor_pos();
 #endif

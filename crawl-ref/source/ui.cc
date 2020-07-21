@@ -310,7 +310,7 @@ void Widget::allocate_region(Region region)
 
 SizeReq Widget::_get_preferred_size(Direction, int)
 {
-    return { 0, 0 };
+    return { 0, 0xffffff };
 }
 
 void Widget::_allocate_region()
@@ -2505,6 +2505,10 @@ void UIRoot::layout()
     }
 }
 
+#ifdef USE_TILE_LOCAL
+bool should_render_current_regions = true;
+#endif
+
 void UIRoot::render()
 {
     if (!needs_paint)
@@ -2512,7 +2516,9 @@ void UIRoot::render()
 
 #ifdef USE_TILE_LOCAL
     glmanager->reset_view_for_redraw();
-    tiles.render_current_regions();
+    tiles.maybe_redraw_screen();
+    if (should_render_current_regions)
+        tiles.render_current_regions();
     glmanager->reset_transform();
 #else
     // On console, clear and redraw only the dirty region of the screen
@@ -2536,7 +2542,10 @@ void UIRoot::render()
     if (m_root.num_children() > 0)
         m_root.get_child(m_root.num_children()-1)->render();
     else
+    {
         redraw_screen(false);
+        update_screen();
+    }
 
     if (is_cursor_enabled() && !cursor_pos.origin())
     {
@@ -3540,5 +3549,22 @@ bool raise_event(Event& event)
 {
     return ui_root.deliver_event(event);
 }
+
+#ifdef USE_TILE_LOCAL
+wm_mouse_event to_wm_event(const MouseEvent &ev)
+{
+    wm_mouse_event mev;
+    mev.event = ev.type() == Event::Type::MouseMove ? wm_mouse_event::MOVE :
+                ev.type() == Event::Type::MouseDown ? wm_mouse_event::PRESS :
+                wm_mouse_event::WHEEL;
+    mev.button = static_cast<wm_mouse_event::mouse_event_button>(ev.button());
+    mev.mod = wm->get_mod_state();
+    int x, y;
+    mev.held = wm->get_mouse_state(&x, &y);
+    mev.px = x;
+    mev.py = y;
+    return mev;
+}
+#endif
 
 }

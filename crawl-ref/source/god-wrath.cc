@@ -741,7 +741,7 @@ static bool _trog_retribution()
         int points = 3 + you.experience_level * 3;
 
         {
-            no_messages msg;
+            msg::suppress msg;
 
             while (points > 0)
             {
@@ -1729,6 +1729,7 @@ static int _fedhas_corpse_spores(beh_type attitude)
     }
 
     viewwindow(false);
+    update_screen();
 
     return count;
 }

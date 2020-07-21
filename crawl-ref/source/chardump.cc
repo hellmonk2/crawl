@@ -441,35 +441,6 @@ static string _denanify(const string &s)
     return out;
 }
 
-static string _sdump_turns_place_info(const PlaceInfo place_info, string name = "")
-{
-    const PlaceInfo   gi = you.global_info;
-    string out;
-
-    if (name.empty())
-        name = place_info.short_name();
-
-    float a, b, c, d, e, f;
-    unsigned int non_interlevel =
-        place_info.turns_total - place_info.turns_interlevel;
-    unsigned int global_non_interlevel =
-        gi.turns_total - gi.turns_interlevel;
-
-    a = TO_PERCENT(place_info.turns_total, gi.turns_total);
-    b = TO_PERCENT(non_interlevel, global_non_interlevel);
-    c = TO_PERCENT(place_info.turns_interlevel, place_info.turns_total);
-    d = TO_PERCENT(place_info.turns_resting, non_interlevel);
-    e = TO_PERCENT(place_info.turns_explore, non_interlevel);
-    f = static_cast<float>(non_interlevel) /
-        static_cast<float>(place_info.levels_seen);
-
-    out =
-        make_stringf("%14s | %5.1f | %5.1f | %5.1f | %5.1f | %5.1f | %13.1f\n",
-                     name.c_str(), a, b, c , d, e, f);
-
-    return _denanify(out);
-}
-
 static string _sdump_level_xp_info(LevelXPInfo xp_info, string name = "")
 {
     string out;
@@ -492,6 +463,33 @@ static string _sdump_level_xp_info(LevelXPInfo xp_info, string name = "")
     return _denanify(out);
 }
 
+static string _sdump_turns_place_info(const PlaceInfo place_info, string name = "")
+{
+    string out;
+
+    if (name.empty())
+        name = place_info.short_name();
+
+    unsigned int non_interlevel =
+        place_info.elapsed_total / 10 - place_info.elapsed_interlevel / 10;
+
+    const float g = static_cast<float>(place_info.elapsed_total / 10)
+                            / static_cast<float>(place_info.levels_seen);
+
+    out =
+        make_stringf("%14s | %6d | %6d | %6d | %6d | %6d | %3d | %6.1f |\n",
+                     name.c_str(),
+                     place_info.elapsed_total / 10,
+                     non_interlevel,
+                     place_info.elapsed_interlevel / 10,
+                     place_info.elapsed_resting / 10,
+                     place_info.elapsed_explore / 10,
+                     place_info.levels_seen,
+                     g);
+
+    return _denanify(out);
+}
+
 static void _sdump_turns_by_place(dump_params &par)
 {
     string &text(par.text);
@@ -499,24 +497,19 @@ static void _sdump_turns_by_place(dump_params &par)
     const vector<PlaceInfo> all_visited = you.get_all_place_info(true);
 
     text +=
-"Table legend:\n"
-" A = Turns spent in this place as a percentage of turns spent in the\n"
-"     entire game.\n"
-" B = Non-inter-level travel turns spent in this place as a percentage of\n"
-"     non-inter-level travel turns spent in the entire game.\n"
-" C = Inter-level travel turns spent in this place as a percentage of\n"
-"     turns spent in this place.\n"
-" D = Turns resting spent in this place as a percentage of non-inter-level\n"
-"     travel turns spent in this place.\n"
-" E = Turns spent auto-exploring this place as a percentage of\n"
-"     non-inter-level travel turns spent in this place.\n"
-" F = Non-inter-level travel turns spent in this place divided by the\n"
-"     number of levels of this place that you've seen.\n\n";
+"Table legend: (Time is in decaauts)\n"
+" A = Elapsed time spent in this place.\n"
+" B = Non-inter-level travel time spent in this place.\n"
+" C = Inter-level travel time spent in this place.\n"
+" D = Time resting spent in this place.\n"
+" E = Time spent auto-exploring this place.\n"
+" F = Levels seen in this place.\n"
+" G = Mean time per level.\n";
 
     text += "               ";
-    text += "    A       B       C       D       E               F\n";
+    text += "    A        B        C        D        E      F       G\n";
     text += "               ";
-    text += "+-------+-------+-------+-------+-------+----------------------\n";
+    text += "+--------+--------+--------+--------+--------+-----+--------+\n";
 
     text += _sdump_turns_place_info(you.global_info, "Total");
 
@@ -524,8 +517,25 @@ static void _sdump_turns_by_place(dump_params &par)
         text += _sdump_turns_place_info(pi);
 
     text += "               ";
-    text += "+-------+-------+-------+-------+-------+----------------------\n";
+    text += "+--------+--------+--------+--------+--------+-----+--------+\n";
 
+    text += "\n";
+
+    CrawlHashTable &time_tracking = you.props[TIME_PER_LEVEL_KEY].get_table();
+    vector<pair<int, string>> to_sort;
+    for (auto &l : time_tracking)
+        if (l.first != "upgrade" && l.first != "Pan")
+            to_sort.emplace_back(l.second.get_int(), l.first);
+    if (to_sort.size() == 0)
+        return; // turn 0 game
+    sort(to_sort.begin(), to_sort.end());
+    reverse(to_sort.begin(), to_sort.end());
+
+    text += "Top non-repeatable levels by time:\n";
+    for (unsigned int i = 0; i < 15 && i < to_sort.size(); i++)
+        text += make_stringf("%8s: %d daAuts\n", to_sort[i].second.c_str(), to_sort[i].first / 10);
+    if (time_tracking.exists("upgrade"))
+        text += "Note: time per level data comes from an upgraded game and may be incomplete.\n";
     text += "\n";
 }
 
