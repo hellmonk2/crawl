@@ -25,7 +25,6 @@
 #include "spl-book.h"
 #include "spl-util.h"
 #include "state.h"
-#include "timed-effects.h" // set_initial_zot_clock
 
 #define MIN_START_STAT       3
 
@@ -468,8 +467,6 @@ static void _setup_generic(const newgame_def& ng,
         _free_up_slot('a');
     if (you.char_class == JOB_ARCANE_MARKSMAN && ng.weapon != WPN_THROWN)
         _free_up_slot('b');
-
-    set_initial_zot_clock();
 
     // Give tutorial skills etc
     if (crawl_state.game_is_tutorial())

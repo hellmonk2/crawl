@@ -2178,11 +2178,15 @@ bool load_level(dungeon_feature_type stair_taken, load_mode_type load_mode,
         ash_detect_portals(is_map_persistent());
 
         if (just_created_level)
-        {
-            decr_zot_clock();
             xom_new_level_noise_or_stealth();
-        }
     }
+
+    if (just_created_level && (load_mode == LOAD_ENTER_LEVEL
+                               || load_mode == LOAD_START_GAME))
+    {
+        decr_zot_clock();
+    }
+
     // Initialize halos, etc.
     invalidate_agrid(true);
 

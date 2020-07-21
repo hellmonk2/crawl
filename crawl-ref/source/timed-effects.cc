@@ -1262,9 +1262,13 @@ int speed_to_duration(int speed)
 
 static int& _zot_clock_for(branch_type br)
 {
-    static const string CLOCK_KEY_ROOT = "ZOT_CLOCK_FOR_";
+    CrawlHashTable &branch_clock = you.props["ZOT_CLOCK"];
     const string branch_name = branches[br].abbrevname;
-    return you.props[CLOCK_KEY_ROOT + branch_name].get_int();
+    // When entering a new branch, start with an empty clock.
+    // (You'll get the usual time when you finish entering.)
+    if (!branch_clock.exists(branch_name))
+        branch_clock[branch_name].get_int() = MAX_ZOT_CLOCK - 1;
+    return branch_clock[branch_name].get_int();
 }
 
 static int& _zot_clock()
@@ -1314,9 +1318,7 @@ int bezotting_level() {
 void decr_zot_clock()
 {
     if (!zot_clock_active())
-    {
         return;
-    }
     if (bezotted()) {
         mpr("As you enter the new level, Zot loses track of you.");
     }
@@ -1362,9 +1364,4 @@ void incr_zot_clock()
         mpr("Zot draws near...");
         drain_player(75, true, true);
     }
-}
-
-void set_initial_zot_clock()
-{
-    _zot_clock() = MAX_ZOT_CLOCK - ZOT_CLOCK_PER_FLOOR;
 }
