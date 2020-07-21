@@ -1326,9 +1326,7 @@ void decr_zot_clock()
     if (!zot_clock_active())
         return;
     if (bezotted())
-    {
         mpr("As you enter the new level, Zot loses track of you.");
-    }
     int &zot = _zot_clock();
     zot = max(0, zot - ZOT_CLOCK_PER_FLOOR);
 }
