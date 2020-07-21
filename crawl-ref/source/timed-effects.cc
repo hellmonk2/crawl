@@ -35,6 +35,7 @@
 #include "mon-place.h"
 #include "mon-project.h"
 #include "mutation.h"
+#include "notes.h"
 #include "player.h"
 #include "player-stats.h"
 #include "random.h"
@@ -1287,7 +1288,8 @@ bool zot_clock_active()
     return _zot_clock_active_in(you.where_are_you);
 }
 
-static bool _over_zot_threshold(branch_type br) {
+static bool _over_zot_threshold(branch_type br)
+{
     return _zot_clock_for(br) >= MAX_ZOT_CLOCK - BEZOTTING_THRESHOLD;
 }
 
@@ -1305,7 +1307,8 @@ bool bezotted()
 }
 
 // How many times should the player have been drained by Zot?
-int bezotting_level() {
+int bezotting_level()
+{
     if (!bezotted())
         return 0;
     const int MAX_ZOTS = 5;
@@ -1319,7 +1322,8 @@ void decr_zot_clock()
 {
     if (!zot_clock_active())
         return;
-    if (bezotted()) {
+    if (bezotted())
+    {
         mpr("As you enter the new level, Zot loses track of you.");
     }
     int &zot = _zot_clock();
@@ -1359,9 +1363,12 @@ void incr_zot_clock()
     {
         mpr("You have lingered too long in familiar places. Zot approaches. Travel to new levels before it's too late!");
         drain_player(150, true, true);
-    } else if (bezotting_level() > old_lvl)
+        take_note(Note(NOTE_MESSAGE, 0, 0, "Touched by the power of Zot."));
+    }
+    else if (bezotting_level() > old_lvl)
     {
         mpr("Zot draws near...");
         drain_player(75, true, true);
+        take_note(Note(NOTE_MESSAGE, 0, 0, "Touched by the power of Zot."));
     }
 }
